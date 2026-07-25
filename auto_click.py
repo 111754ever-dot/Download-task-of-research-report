@@ -113,34 +113,40 @@ def _moved(before):
 def scroll_down():
     """尝试把列表往下滚一屏,返回是否真的动了(并打印哪种方式生效)。"""
     w, h = pyautogui.size()
-    lx, ly = int(w * 0.42), int(h * 0.55)   # 列表中间
     before = _snap()
 
-    # 方法1:鼠标滚轮
-    pyautogui.moveTo(lx, ly, duration=0.15)
-    pyautogui.scroll(-12)
-    time.sleep(0.8)
-    if _moved(before):
-        print("   滚动:滚轮生效")
-        return True
-
-    # 方法2:键盘 PageDown(先在列表上点一下右侧空白获得焦点)
-    pyautogui.click(int(w * 0.66), ly)      # 右侧通常是空白,不是链接
-    time.sleep(0.2)
+    # 方法1:直接 PageDown(点过下载/保存后,页面通常已获得焦点)
     pyautogui.press("pagedown")
     time.sleep(0.8)
     if _moved(before):
         print("   滚动:PageDown 生效")
         return True
 
-    # 方法3:点最右侧滚动条下半部分(相当于向下翻页)
-    pyautogui.click(w - 10, int(h * 0.78))
+    # 方法2:先在结果区点一下让页面获得焦点,再 PageDown
+    pyautogui.click(int(w * 0.40), int(h * 0.50))
+    time.sleep(0.2)
+    pyautogui.press("pagedown")
+    time.sleep(0.8)
+    if _moved(before):
+        print("   滚动:点一下+PageDown 生效")
+        return True
+
+    # 方法3:鼠标滚轮
+    pyautogui.moveTo(int(w * 0.42), int(h * 0.55), duration=0.15)
+    pyautogui.scroll(-12)
+    time.sleep(0.8)
+    if _moved(before):
+        print("   滚动:滚轮生效")
+        return True
+
+    # 方法4:点最右侧滚动条下半部分(相当于向下翻页)
+    pyautogui.click(w - 8, int(h * 0.80))
     time.sleep(0.8)
     if _moved(before):
         print("   滚动:点滚动条生效")
         return True
 
-    print("   ! 三种滚动都没让列表动。")
+    print("   ! 四种滚动都没让列表动。")
     return False
 
 
