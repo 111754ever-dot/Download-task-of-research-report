@@ -107,7 +107,9 @@ def sanitize(name, maxlen=120):
 
 
 def default_name(r):
-    return sanitize(f"{str(r.get('date',''))[:10]}_{r.get('org','')}_{r.get('title','')}") + ".pdf"
+    date = str(r.get("date", ""))[:10]
+    title = r.get("title", "")          # 标题里已经带了机构名,不用重复
+    return sanitize(f"{date}_{title}") + ".pdf"
 
 
 def is_pdf(path):

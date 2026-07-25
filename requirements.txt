@@ -1,3 +1,2 @@
 requests>=2.31.0
-# 只有当列表接口返回的是 HTML(而不是 JSON)时才需要下面这个:
-# beautifulsoup4>=4.12.0
+beautifulsoup4>=4.12.0

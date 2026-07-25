@@ -38,26 +38,22 @@
 pip install -r requirements.txt
 ```
 
-### 1. 抓两个请求(关键的一步)
+### 1. 填配置
 
-工具需要知道两件事:**列表接口**(翻页时的请求)和**下载接口**(点下载时的请求)。
-
-- 如果你用的是**网页版** `www.hibor.com.cn`:直接在浏览器按 `F12` → `Network(网络)`,
-  然后在网页里翻一页、下一篇,就能在列表里看到这两个请求。右键 → Copy 即可。
-- 如果你用的是**桌面终端**(F12 用不了):用抓包工具 **Fiddler / Charles / mitmproxy**
-  挂在终端上,同样操作一次,把请求抓下来。
-
-每个请求你需要记下:**URL、请求方法(GET/POST)、请求头(尤其是 Cookie)、返回内容**。
-
-> 抓不明白也没关系——把抓到的这两个请求(URL + 请求头 + 一段返回内容)发给我,我帮你填。
-
-### 2. 填配置
+慧博的接口地址、参数和网页解析都**已经在 `config.example.py` 里配好了**,
+你只需要从抓包里填几个会过期的凭证。先复制一份:
 
 ```bash
 cp config.example.py config.py      # Windows: copy config.example.py config.py
 ```
 
-打开 `config.py`,按注释填 5 处:① Cookie ② 列表接口 ③ 怎么解析返回 ④ 过滤条件 ⑤ 限速(默认即可)。
+打开 `config.py`,只填最上面 ★ 标的那几项:
+
+- `COOKIE` —— 抓到的那条请求"请求头"里 `Cookie:` 后面的一整段
+- `ABC / DEF / VIDD / KEYY / XYZ` —— 在"请求体"最底下那行里,形如 `abc=… def=…` 的值
+
+用桌面终端抓包用 **Fiddler**(见文末),抓到搜索请求后按上面对应填入即可。
+这几项会过期,哪天跑不动了,重抓一次、更新这几项就行。
 
 ### 3. 先建目录,核对
 
@@ -88,6 +84,19 @@ python downloader.py verify
 - **中途停了 / 关机了?** 直接再跑 `python downloader.py download`,已下的自动跳过。
 - **提示连续失败自动停了?** 多半是登录过期(重新登录、更新 `config.py` 里的 Cookie)或被临时限速(隔一两小时再跑)。
 - **想下得更慢更稳?** 调大 `config.py` 里的 `MIN_DELAY / MAX_DELAY / BATCH_REST`,调小 `HOURLY_CAP`。
+
+---
+
+## 附:用 Fiddler 抓那几个凭证(桌面终端)
+
+1. 装 **Fiddler Classic**(免费):`https://www.telerik.com/fiddler/fiddler-classic`
+2. 打开后:`Tools → Options → HTTPS`,勾上 **Capture HTTPS CONNECTs** 和 **Decrypt HTTPS traffic**,
+   弹出装证书时点 **Yes**,确定。
+3. 按 `Ctrl+X` 清空列表,回到慧博点一下"下一页"。
+4. 在 Fiddler 里找到 **Host 是 `sysdw.hibor.com.cn`、URL 是 `/huisouchrome/sa`** 的那一行,点它。
+5. 右边 `Inspectors` → 上半部分 `Raw`:
+   - 找到 `Cookie:` 那一整行 → 填进 `config.py` 的 `COOKIE`
+   - 找到最底下的请求体,里面 `abc=… def=… vidd=… keyy=… xyz=…` → 分别填进对应项
 
 ---
 
