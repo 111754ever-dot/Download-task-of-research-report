@@ -1,0 +1,14 @@
+# 你的真实配置(含 Cookie),绝不提交
+config.py
+
+# 下载产物与运行文件
+downloads/
+manifest.csv
+run.log
+*.part
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
