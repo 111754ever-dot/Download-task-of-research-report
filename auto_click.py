@@ -35,8 +35,8 @@ WAIT_DIALOG   = 1.5      # 点"下载"后,等弹窗出现的时间(秒)
 WAIT_SAVE     = 2.5      # 点"保存"后,等它下完的时间(秒)
 WAIT_BETWEEN  = 1.5      # 每篇之间的间隔(秒)
 WAIT_NEXTPAGE = 2.5      # 点"下一页"后,等列表刷新的时间(秒)
-SCROLL_CLICKS = -8       # 每次向下滚动的量(负数=向下;滚太多会漏、太少会重,可微调)
-MAX_STAGNANT  = 3        # 连续滚动几次都没有新"下载"按钮,就认为本页到底
+SCROLL_CLICKS = -3       # 每次向下滚动的量(负数=向下;若发现漏下就调小、原地不动就调大)
+MAX_STAGNANT  = 4        # 连续滚动几次都没有新"下载"按钮,就认为本页到底
 # ================================================================
 
 pyautogui.FAILSAFE = True          # 鼠标甩到左上角 = 紧急停止
@@ -101,35 +101,56 @@ def click_save():
     return False
 
 
+def list_scroll(amount):
+    """先把鼠标移到结果列表中间再滚动 —— 否则鼠标不在列表上方,滚不动。"""
+    w, h = pyautogui.size()
+    pyautogui.moveTo(int(w * 0.42), int(h * 0.55), duration=0.2)
+    pyautogui.scroll(amount)
+    time.sleep(1.2)
+
+
 def process_current_page(page_no):
     print(f"===== 第 {page_no} 页,开始 =====")
     done = 0
-    last_y = -10000
     stagnant = 0
+    prev_y = None            # 上一次点的按钮竖直位置
     while True:
-        btns = find_all("download.png")
-        target = next((b for b in btns if (b.top + b.height / 2) > last_y + 20), None)
+        btns = find_all("download.png")   # 只会匹配"没下过"的按钮(下过的变红,匹配不上)
 
-        if target is None:
-            # 当前可见的都点完了,向下滚动看还有没有
-            pyautogui.scroll(SCROLL_CLICKS)
-            time.sleep(1.0)
-            last_y = -10000
+        if not btns:
+            # 当前看不到可下载的了 → 向下滚,看下面还有没有
+            list_scroll(SCROLL_CLICKS)
+            prev_y = None
             stagnant += 1
             if stagnant >= MAX_STAGNANT:
-                print(f"===== 第 {page_no} 页完成,本页下了 {done} 篇 =====")
-                return done
+                break
+            continue
+
+        top = btns[0]
+        cy = int(top.top + top.height / 2)
+
+        # 防死循环:若最上面的按钮和刚点过的几乎同一位置(下载后没变化),
+        # 说明卡住了,主动向下滚一点越过它,而不是反复点它
+        if prev_y is not None and abs(cy - prev_y) < 12:
+            list_scroll(SCROLL_CLICKS)
+            prev_y = None
+            stagnant += 1
+            if stagnant >= MAX_STAGNANT:
+                break
             continue
 
         stagnant = 0
-        click_box(target)                     # 点"下载"
+        click_box(top)                        # 点"下载"
         time.sleep(WAIT_DIALOG)
-        if click_save():                      # 点"保存"
+        if click_save():                      # 点弹窗里的"保存"
             done += 1
-            print(f"   ✓ 第 {done} 篇已保存")
+            print(f"   ✓ 已保存 {done} 篇")
         time.sleep(WAIT_SAVE)
-        last_y = target.top + target.height / 2
+        prev_y = cy
         time.sleep(WAIT_BETWEEN)
+
+    print(f"===== 第 {page_no} 页完成,本页下了 {done} 篇 =====")
+    return done
 
 
 def main():
@@ -158,8 +179,7 @@ def main():
                 break
             click_box(nxt)
             time.sleep(WAIT_NEXTPAGE)
-            pyautogui.scroll(3000)            # 滚回顶部
-            time.sleep(1.0)
+            list_scroll(3000)                 # 滚回顶部
     print(f"全部结束,共下载约 {total} 篇。请到文件夹里核对数量。")
 
 
