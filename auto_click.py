@@ -28,9 +28,9 @@ except ImportError:
     raise SystemExit("缺少依赖,请先运行:pip install pyautogui opencv-python pillow")
 
 # ============================ 可调参数 ============================
-TEST_ONE_PAGE = True
-TOTAL_PAGES   = 31
-START_PAGE    = 1
+TEST_ONE_PAGE = True     # 先 True 测一页;顺了改 False 跑全部
+TOTAL_PAGES   = 31       # 改成你实际的总页数(华创31页;国盛是12页,就填12)
+START_PAGE    = 1        # 从第几页开始(中断后想接着跑可改这里)
 
 CONFIDENCE    = 0.80
 WAIT_DIALOG   = 1.3      # 点"下载"后等弹窗
@@ -153,7 +153,6 @@ def scroll_down():
 def process_current_page(page_no):
     print(f"===== 第 {page_no} 页,开始 =====")
     done = 0
-    stagnant = 0
     while True:
         btns = find_all("download.png")
         print(f"   [调试] 本屏看到 {len(btns)} 个下载按钮")
@@ -172,16 +171,13 @@ def process_current_page(page_no):
             time.sleep(WAIT_SAVE)
             clicked.append(cy)
 
-        # 翻到下一屏
-        if scroll_down():
-            stagnant = 0
-        else:
-            stagnant += 1
-            if stagnant >= 2:
-                break
+        # 滚不动了 = 已到本页底部,直接结束,避免把最后一屏又点一遍
+        if not scroll_down():
+            print("   (已到本页底部)")
+            break
         time.sleep(WAIT_BETWEEN)
 
-    print(f"===== 第 {page_no} 页完成,本页下了 {done} 篇 =====")
+    print(f"===== 第 {page_no} 页结束,点了 {done} 次(翻屏重叠会有少量重复,跑完用 dedup_files.py 清理)=====")
     return done
 
 
@@ -208,7 +204,9 @@ def main():
                 break
             click_box(nxt)
             time.sleep(WAIT_NEXTPAGE)
-    print(f"全部结束,共下载约 {total} 篇。请核对文件夹数量。")
+            pyautogui.hotkey("ctrl", "home")     # 回到新页顶部再开始
+            time.sleep(1.2)
+    print(f"全部结束,点了约 {total} 次。请运行 dedup_files.py 去重,再核对数量。")
 
 
 if __name__ == "__main__":
