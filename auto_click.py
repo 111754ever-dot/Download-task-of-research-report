@@ -21,8 +21,9 @@ import os
 
 try:
     import pyautogui
+    from PIL import Image
 except ImportError:
-    raise SystemExit("缺少 pyautogui,请先运行:pip install pyautogui opencv-python pillow")
+    raise SystemExit("缺少依赖,请先运行:pip install pyautogui opencv-python pillow")
 
 # ============================ 可调参数 ============================
 TEST_ONE_PAGE = True     # True=只跑当前这一页试水;顺了改成 False 跑全部
@@ -46,10 +47,28 @@ def _tpl(name):
     return os.path.join(TEMPLATES, name)
 
 
+_TPL_CACHE = {}
+
+
+def load_tpl(name):
+    """用 PIL 读模板图 —— 能处理中文路径,避开 OpenCV 读不了中文路径的坑。"""
+    if name not in _TPL_CACHE:
+        path = _tpl(name)
+        if not os.path.exists(path):
+            raise SystemExit(
+                f"找不到模板图:{path}\n"
+                "请确认 templates 文件夹里有这张图,且文件名完全一致(全小写、.png)。"
+            )
+        _TPL_CACHE[name] = Image.open(path).convert("RGB")
+    return _TPL_CACHE[name]
+
+
 def find_all(name):
     """找出屏幕上所有匹配的按钮,按从上到下排序。"""
     try:
-        boxes = list(pyautogui.locateAllOnScreen(_tpl(name), confidence=CONFIDENCE))
+        boxes = list(pyautogui.locateAllOnScreen(load_tpl(name), confidence=CONFIDENCE))
+    except SystemExit:
+        raise
     except Exception:
         boxes = []
     return sorted(boxes, key=lambda b: b.top)
@@ -57,7 +76,9 @@ def find_all(name):
 
 def find_one(name):
     try:
-        return pyautogui.locateOnScreen(_tpl(name), confidence=CONFIDENCE)
+        return pyautogui.locateOnScreen(load_tpl(name), confidence=CONFIDENCE)
+    except SystemExit:
+        raise
     except Exception:
         return None
 
@@ -112,6 +133,12 @@ def process_current_page(page_no):
 
 
 def main():
+    # 预检:先把要用的模板图都读一遍,缺了/读不了会立刻报清楚的错
+    needed = ["download.png", "save.png"] + ([] if TEST_ONE_PAGE else ["next.png"])
+    for n in needed:
+        load_tpl(n)
+    print("模板图读取正常 ✓")
+
     print("3 秒后开始,请立刻把鼠标点到慧博窗口上、然后别再动它……")
     print("(想中止:把鼠标甩到屏幕左上角)")
     time.sleep(3)
