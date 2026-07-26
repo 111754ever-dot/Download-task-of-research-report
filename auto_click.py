@@ -82,6 +82,15 @@ def click_box(box):
     pyautogui.click()
 
 
+def find_next():
+    """找'下一页'按钮。'上一页/下一页'长得像会都匹配上,
+    页面栏顺序是 上一页…下一页,所以取【最右边】那个匹配才是下一页。"""
+    boxes = find_all("next.png")
+    if not boxes:
+        return None
+    return max(boxes, key=lambda b: b.left)
+
+
 def click_save():
     for _ in range(12):
         loc = find_one("save.png")
@@ -198,7 +207,7 @@ def main():
     for page in range(START_PAGE, TOTAL_PAGES + 1):
         total += process_current_page(page)
         if page < TOTAL_PAGES:
-            nxt = find_one("next.png")
+            nxt = find_next()
             if not nxt:
                 print("! 找不到'下一页'按钮,停在第 %d 页。" % page)
                 break
